@@ -1,4 +1,4 @@
-name: 🚀 SEVER AI STV PREMIUM (UBUNTU)
+name: 🚀 SEVER AI STV PREMIUM (UBUNTU SSH)
 
 on:
   workflow_dispatch:
@@ -14,14 +14,14 @@ on:
         - '5h40m'
 
 jobs:
-  Premium-RDP-Setup:
+  Premium-SSH-Setup:
     runs-on: ubuntu-latest
     timeout-minutes: 340
     
     steps:
       - name: 🎯 KHỞI ĐỘNG HỆ THỐNG
         run: |
-          echo -e "\n\e[1;33m🤖 AI STV PREMIUM RDP SERVER\e[0m"
+          echo -e "\n\e[1;33m🤖 AI STV PREMIUM SSH SERVER\e[0m"
           echo -e "\e[1;32m⚡ Powered by AI STV\e[0m"
           echo -e "\e[1;35m🕒 Thời gian: ${{ github.event.inputs.duration }}\e[0m"
           
@@ -32,58 +32,44 @@ jobs:
           done
           echo -e "\e[1;32m\r✅ Hệ thống đã sẵn sàng!                    \e[0m"
 
-      - name: 🔧 CẤU HÌNH HỆ THỐNG (GUI & XRDP)
-        run: |
-          echo -e "\e[1;33m🛠️  ĐANG CẤU HÌNH HỆ THỐNG\e[0m"
-          sudo apt-get update > /dev/null
-          sudo apt-get install -y xfce4 xfce4-goodies xrdp > /dev/null
-          sudo adduser xrdp ssl-cert
-          echo "exec startxfce4" > ~/.xsession
-          sudo systemctl restart xrdp
-          echo -e "\e[1;32m🎯 Cấu hình hoàn tất!\e[0m"
-
       - name: 👤 TẠO TÀI KHOẢN PREMIUM
         run: |
-          echo -e "\n\e[1;33m👤 ĐANG TẠO TÀI KHOẢN PREMIUM\e[0m"
+          echo -e "\n\e[1;33m👤 ĐANG TẠO TÀI KHOẢN SSH\e[0m"
           
           USER_NAME="AISTV-PREMIUM"
           PASSWORD="TamPc@123"
           
-          # Xóa user cũ nếu tồn tại và tạo mới
-          sudo userdel -r $USER_NAME 2>/dev/null || true
           sudo useradd -m -s /bin/bash $USER_NAME
           echo "$USER_NAME:$PASSWORD" | sudo chpasswd
           sudo usermod -aG sudo $USER_NAME
           
-          echo -e "\e[1;32m│ ✅ Đã tạo user mới với mật khẩu: $PASSWORD\e[0m"
+          # Cấu hình SSH cho phép đăng nhập mật khẩu
+          sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
           
-          echo "RDP_USER=$USER_NAME" >> $GITHUB_ENV
-          echo "RDP_PASS=$PASSWORD" >> $GITHUB_ENV
-
-      - name: 🔍 KIỂM TRA QUYỀN HỆ THỐNG
-        run: |
-          if id "AISTV-PREMIUM" &>/dev/null; then echo -e "\e[1;32m│ ✅ User tồn tại\e[0m"; fi
-          if groups AISTV-PREMIUM | grep &>/dev/null "\bsudo\b"; then echo -e "\e[1;32m│ ✅ Có quyền Admin\e[0m"; fi
+          echo -e "\e[1;32m│ ✅ Đã tạo user mới với mật khẩu: $PASSWORD\e[0m"
+          echo "SSH_USER=$USER_NAME" >> $GITHUB_ENV
+          echo "SSH_PASS=$PASSWORD" >> $GITHUB_ENV
 
       - name: 🌐 THIẾT LẬP MẠNG PREMIUM
         env:
           TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh > /dev/null
-          sudo tailscale up --authkey=$TAILSCALE_AUTH_KEY --hostname=ai-stv-premium-$GITHUB_RUN_ID --accept-routes
+          sudo tailscale up --authkey=$TAILSCALE_AUTH_KEY --hostname=ai-stv-ssh-$GITHUB_RUN_ID
           IP=$(tailscale ip -4)
           echo "TAILSCALE_IP=$IP" >> $GITHUB_ENV
           echo -e "\e[1;32m✅ IP: $IP\e[0m"
 
-      - name: 🎉 THÔNG TIN KẾT NỐI
+      - name: 🎉 THÔNG TIN KẾT NỐI TERMIUS
         run: |
           echo -e "\e[1;36m┌───────────────────────────────────────────┐\e[0m"
           echo -e "\e[1;36m│              🎉 KẾT NỐI THÀNH CÔNG!              │\e[0m"
           echo -e "\e[1;36m├───────────────────────────────────────────┤\e[0m"
-          echo -e "\e[1;37m│ 🌐  Địa chỉ: $TAILSCALE_IP\e[0m"
-          echo -e "\e[1;37m│ 👤  Tài khoản: $RDP_USER\e[0m"
-          echo -e "\e[1;37m│ 🔐  Mật khẩu: $RDP_PASS\e[0m"
-          echo -e "\e[1;37m│ 📍  Port: 3389\e[0m"
+          echo -e "\e[1;37m│ 🌐  Host/IP: $TAILSCALE_IP\e[0m"
+          echo -e "\e[1;37m│ 👤  Username: $SSH_USER\e[0m"
+          echo -e "\e[1;37m│ 🔐  Password: $SSH_PASS\e[0m"
+          echo -e "\e[1;37m│ 📍  Port: 22\e[0m"
           echo -e "\e[1;36m└───────────────────────────────────────────┘\e[0m"
           
           DURATION="${{ github.event.inputs.duration }}"
@@ -100,11 +86,11 @@ jobs:
             M=$(( (TOTAL_SEC % 3600) / 60 ))
             S=$((TOTAL_SEC % 60))
             printf "\r\e[1;36m🔄 Còn lại: %dh %dm %ds\e[0m" $H $M $S
-            sleep 5
-            TOTAL_SEC=$((TOTAL_SEC - 5))
+            sleep 10
+            TOTAL_SEC=$((TOTAL_SEC - 10))
           done
 
-      - name: 掃除 🧹 DỌN DẸP HỆ THỐNG
+      - name: 🧹 DỌN DẸP HỆ THỐNG
         if: always()
         run: |
           sudo tailscale logout 2>/dev/null || true
