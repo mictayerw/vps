@@ -1,0 +1,143 @@
+name: 🚀 SEVER AI STV PREMIUM
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: '🕐 Thời gian sử dụng'
+        required: false
+        default: '5h40m'
+        type: choice
+        options:
+        - '1h'
+        - '3h' 
+        - '5h40m'
+
+jobs:
+  Premium-VPS-Setup:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 340
+    
+    steps:
+      - name: 📥 TẢI MÃ NGUỒN API
+        uses: actions/checkout@v4
+
+      - name: 🟢 CÀI ĐẶT NODE.JS 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 CÀI ĐẶT THƯ VIỆN & PM2
+        run: |
+          npm install express axios validator pm2 -g
+          npm install express axios validator
+          touch o.txt vn.txt
+          chmod +x *.js || true
+
+      - name: 🎯 KHỞI ĐỘNG HỆ THỐNG
+        run: |
+          echo -e "\n\e[1;33m🤖 AI STV PREMIUM LINUX SERVER\e[0m"
+          echo -e "\e[1;32m⚡ Powered by AI STV\e[0m"
+          echo -e "\e[1;35m🕒 Thời gian: ${{ github.event.inputs.duration }}\e[0m"
+          
+          frames=('⣾' '⣽' '⣻' '⢿' '⡿' '⣟' '⣯' '⣷')
+          for i in {0..9}; do
+              frame=${frames[$((i % 8))]}
+              echo -ne "\r\e[1;34m🚀 Đang khởi tạo hệ thống... $frame\e[0m"
+              sleep 0.1
+          done
+          echo -e "\r\e[1;32m✅ Hệ thống đã sẵn sàng!                    \e[0m"
+
+      - name: 🔧 CẤU HÌNH HỆ THỐNG
+        run: |
+          echo -e "\e[1;33m🛠️  ĐANG CẤU HÌNH HỆ THỐNG\e[0m"
+          sudo apt-get update -y -qq
+          sudo apt-get install -y ufw curl wget ssh -qq
+          # Cài thư viện bypass
+          sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2 -qq
+          
+          # Mở port SSH (22) và API (2025)
+          sudo ufw allow 22/tcp
+          sudo ufw allow 2025/tcp
+          sudo service ssh start
+          echo -e "\e[1;32m🎯 Cấu hình hoàn tất!\e[0m"
+
+      - name: 👤 TẠO TÀI KHOẢN PREMIUM
+        run: |
+          echo -e "\n\e[1;33m👤 ĐANG TẠO TÀI KHOẢN PREMIUM\e[0m"
+          
+          # Mật khẩu cố định
+          PASSWORD="TamPc@123"
+          
+          # Tạo user Ubuntu cho Termius
+          sudo useradd -m -s /bin/bash AISTV-PREMIUM || true
+          echo "AISTV-PREMIUM:$PASSWORD" | sudo chpasswd
+          sudo usermod -aG sudo AISTV-PREMIUM
+          
+          # Cho phép đăng nhập bằng Password qua SSH
+          sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+          sudo service ssh restart
+          
+          echo -e "│ \e[1;32m✅ Đã tạo user mới với mật khẩu: $PASSWORD\e[0m"
+          
+          echo "SSH_USER=AISTV-PREMIUM" >> $GITHUB_ENV
+          echo "SSH_PASS=$PASSWORD" >> $GITHUB_ENV
+
+      - name: 🌐 THIẾT LẬP MẠNG TAILSCALE
+        env:
+          TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=$TAILSCALE_AUTH_KEY --hostname=ai-stv-premium-${{ github.run_id }} --accept-routes --reset
+          IP=$(tailscale ip -4)
+          echo "TAILSCALE_IP=$IP" >> $GITHUB_ENV
+          echo -e "\e[1;32m✅ IP Tailscale: $IP\e[0m"
+
+      - name: 🚀 KHỞI ĐỘNG API NODE.JS NGẦM
+        run: |
+          # Chạy file run.js dưới nền bằng PM2
+          pm2 start run.js --name "AISTV-API"
+          echo -e "\e[1;32m✅ API Server đã được khởi động ngầm trên cổng 2025!\e[0m"
+
+      - name: 🎉 THÔNG TIN KẾT NỐI
+        run: |
+          echo -e "\e[1;36m┌───────────────────────────────────────────┐\e[0m"
+          echo -e "\e[1;36m│              🎉 KẾT NỐI THÀNH CÔNG!              │\e[0m"
+          echo -e "\e[1;36m├───────────────────────────────────────────┤\e[0m"
+          echo -e "\e[1;37m│ 🌐  IP (Termius & API): $TAILSCALE_IP\e[0m"
+          echo -e "\e[1;37m│ 👤  Tài khoản: AISTV-PREMIUM\e[0m"
+          echo -e "\e[1;37m│ 🔐  Mật khẩu: $SSH_PASS\e[0m"
+          echo -e "\e[1;37m│ 🔗  Link API: http://$TAILSCALE_IP:2025/api/status\e[0m"
+          echo -e "\e[1;36m└───────────────────────────────────────────┘\e[0m"
+          
+          DURATION="${{ github.event.inputs.duration }}"
+          if [ "$DURATION" == "1h" ]; then
+              TOTAL_MINUTES=60
+          elif [ "$DURATION" == "3h" ]; then
+              TOTAL_MINUTES=180
+          else
+              TOTAL_MINUTES=340
+          fi
+          echo "TOTAL_MINUTES=$TOTAL_MINUTES" >> $GITHUB_ENV
+
+      - name: ⏳ DUY TRÌ PHIÊN LÀM VIỆC
+        run: |
+          TOTAL_SECONDS=$(($TOTAL_MINUTES * 60))
+          END_TIME=$(($(date +%s) + $TOTAL_SECONDS))
+          
+          while [ $(date +%s) -lt $END_TIME ]; do
+              REMAINING=$(($END_TIME - $(date +%s)))
+              H=$(($REMAINING / 3600))
+              M=$((($REMAINING % 3600) / 60))
+              S=$(($REMAINING % 60))
+              echo -ne "\r\e[1;36m🔄 Còn lại: ${H}h ${M}m ${S}s\e[0m"
+              sleep 5
+          done
+
+      - name: 🧹 DỌN DẸP HỆ THỐNG
+        if: always()
+        run: |
+          sudo pkill node || true
+          sudo userdel -r AISTV-PREMIUM || true
+          sudo tailscale down --accept-risk=all || true
+          echo -e "\e[1;32m🎉 Dọn dẹp hoàn tất!\e[0m"
